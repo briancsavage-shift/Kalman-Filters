@@ -6,12 +6,13 @@ TIMESTEPS = 5
 
 
 def main():
+    logging.getLogger().setLevel(logging.INFO)
     kf = KalmanFilter(sigma2=1.7)
 
     x = kf.timestep(x=START)
-    for i in range(TIMESTEPS):
+    for i in range(TIMESTEPS + 1):
         x = kf.timestep(x=x)
-        logging.info(f"@ t={i} -> x={x}")
+        logging.info(f"  @ t={i} -> x={x}")
 
     return x
 
@@ -40,14 +41,14 @@ class KalmanFilter:
 
         """
         try:
-            coef = np.divide(1, np.sqrt(np.prod([2.0, self.sigma2, np.pi])))
+            coef = np.divide(1, np.sqrt(np.prod([2.0, self.sd, np.pi])))
         except ZeroDivisionError:
             logging.error("Division by zero in [timestep] for [coef]")
             exit(1)
 
         try:
             exp = np.exp(np.prod([-0.5, np.divide(np.subtract(x, self.mu),
-                                                  self.sigma2)]))
+                                                  self.sd)]))
         except ZeroDivisionError:
             logging.error("Division by zero in [timestep] for [exp]")
             exit(1)
@@ -86,18 +87,8 @@ class KalmanFilter:
             Returns:
                 _type_: _description_
         """
-        try:
-            mu = np.add(self.mu1, self.mu2)
-        except ZeroDivisionError:
-            logging.error("Division by zero in [predict] for [mu]")
-            exit(1)
-
-        try:
-            sd = np.add(self.sd1, self.sd2)
-        except ZeroDivisionError:
-            logging.error("Division by zero in [predict] for [sd]")
-            exit(1)
-
+        mu = np.add(self.mu1, self.mu2)
+        sd = np.add(self.sd1, self.sd2)
         return mu, sd
 
 
