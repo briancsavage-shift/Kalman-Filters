@@ -1,5 +1,8 @@
 import logging
+import os
 import numpy as np
+import matplotlib.pyplot as plt
+import scipy.stats
 
 START = 1.0
 TIMESTEPS = 5
@@ -13,6 +16,8 @@ def main():
     for i in range(TIMESTEPS + 1):
         x = kf.timestep(x=x)
         logging.info(f"  @ t={i} -> x={x}")
+
+    charting = Charts().makePlot(mu=5.0, sd=1.0)
 
     return x
 
@@ -80,27 +85,69 @@ class KalmanFilter:
 
         return mu, sd
 
-    def predict(self):
+    def predict(self, mu1, sd1, mu2, sd2):
         """
             _summary_
 
             Returns:
                 _type_: _description_
         """
-        mu = np.add(self.mu1, self.mu2)
-        sd = np.add(self.sd1, self.sd2)
+        mu = np.add(mu1, mu2)
+        sd = np.add(sd1, sd2)
         return mu, sd
 
 
-class Board:
-    def __init__(self, length: int = 20):
-        self.length = length
-        self.board = ['.'] * length
-        self.board[0] = '&'
+class Charts:
+    def __init__(self, xmin: int = 0, xmax: int = 10, points: int = 100):
+        self.xmin = xmin
+        self.xmax = xmax
+        self.points = points
 
-    def logBoard(self):
-        [print(self.board[i], end='') for i in range(self.length)]
-        print()
+        self.savepath = os.path.join(os.path.dirname(__file__), "charts")
+
+    def makePlot(self, mu, sd):
+        x = np.linspace(self.xmin, self.xmax, self.points)
+        y = scipy.stats.norm.pdf(x, mu, sd)
+
+        plt.plot(x, y, color='black')
+        plt.grid()
+
+        ls = [mu + sd]
+        rs = [mu - sd]
+        cl = ['#0b559f']
+
+        regions = [
+            (mu + (1 * sd), mu - (1 * sd), '#0b559f'),
+            (mu + (1 * sd), mu + (2 * sd), '#2b7bba'),
+            (mu - (1 * sd), mu - (2 * sd), '#2b7bba'),
+            (mu + (2 * sd), mu + (3 * sd), '#539ecd'),
+            (mu - (2 * sd), mu - (3 * sd), '#539ecd'),
+            (mu + (3 * sd), mu + (9 * sd), '#89bedc'),
+            (mu - (3 * sd), mu - (9 * sd), '#89bedc'),
+        ]
+
+        for l, r, c in regions:
+            plt.plot([l, l],
+                     [0.0, scipy.stats.norm.pdf(l, mu, sd)],
+                     color='black')
+            plt.plot([r, r],
+                     [0.0, scipy.stats.norm.pdf(r, mu, sd)],
+                     color='black')
+            xp = np.linspace(l, r, 10)
+            yp = scipy.stats.norm.pdf(xp, mu, sd)
+            plt.fill_between(xp, yp, color=c, alpha=1.0)
+
+        plt.plot
+
+        plt.xlim(self.xmin, self.xmax)
+        plt.ylim(0, 1)
+
+        plt.title("Kalman Filter")
+        plt.xlabel("timestep")
+        plt.ylabel("Probability Distribution")
+
+        plt.savefig(os.path.join(self.savepath, "NormalDistribution.png"))
+        plt.show()
 
 
 if __name__ == '__main__':
