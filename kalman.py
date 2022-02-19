@@ -17,7 +17,12 @@ def main():
         x = kf.timestep(x=x)
         logging.info(f"  @ t={i} -> x={x}")
 
-    charting = Charts().makePlot(mu=5.0, sd=1.0)
+    sMu = 0.0
+    sStd = 1.7
+
+    for i in range(1, TIMESTEPS + 1):
+        print(f"timestep={i} -> mu={sMu} -> std={1.7 * i}")
+        Charts().makeTimestepPlot(mu=0.0, sd=1.7 * i, timestep=i)
 
     return x
 
@@ -98,23 +103,20 @@ class KalmanFilter:
 
 
 class Charts:
-    def __init__(self, xmin: int = 0, xmax: int = 10, points: int = 100):
+    def __init__(self, xmin: int = -10, xmax: int = 10, points: int = 100):
         self.xmin = xmin
         self.xmax = xmax
         self.points = points
 
         self.savepath = os.path.join(os.path.dirname(__file__), "charts")
 
-    def makePlot(self, mu, sd):
+    def makeTimestepPlot(self, mu: float = 0.0, sd: float = 1.0, timestep: int = 1):
         x = np.linspace(self.xmin, self.xmax, self.points)
         y = scipy.stats.norm.pdf(x, mu, sd)
 
+        plt.figure()
         plt.plot(x, y, color='black')
         plt.grid()
-
-        ls = [mu + sd]
-        rs = [mu - sd]
-        cl = ['#0b559f']
 
         regions = [
             (mu + (1 * sd), mu - (1 * sd), '#0b559f'),
@@ -133,21 +135,28 @@ class Charts:
             plt.plot([r, r],
                      [0.0, scipy.stats.norm.pdf(r, mu, sd)],
                      color='black')
+
             xp = np.linspace(l, r, 10)
             yp = scipy.stats.norm.pdf(xp, mu, sd)
             plt.fill_between(xp, yp, color=c, alpha=1.0)
 
-        plt.plot
+            plt.annotate(f"{l:.2f}",
+                         xy=(xp[0], yp[0] + 0.05),
+                         textcoords='data')
 
         plt.xlim(self.xmin, self.xmax)
         plt.ylim(0, 1)
 
-        plt.title("Kalman Filter")
-        plt.xlabel("timestep")
-        plt.ylabel("Probability Distribution")
+        plt.title(
+            "State Distribution at timestep=%s" % timestep)
+        plt.xlabel("X Position")
+        plt.ylabel("Probability Distribution for being at position X")
 
-        plt.savefig(os.path.join(self.savepath, "NormalDistribution.png"))
-        plt.show()
+        plt.savefig(os.path.join(self.savepath,
+                    "StateDistributions-timestep=%s.png" % timestep))
+
+    def makePosteriorPlot(self, pos, vel, muPos, muVel):
+        pass
 
 
 if __name__ == '__main__':
